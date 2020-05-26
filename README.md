@@ -2,10 +2,10 @@
 
 Dieses Programm durchsucht die Rewe-Angebotsseiten und schreibt eine Markdown-formatierte Übersichtsliste heraus.
 
-Zur besseren Preisvergleichbarkeit wird der Preis pro 100 g/100 ml mit ausgegeben. 
+Zur besseren Preisvergleichbarkeit wird der Preis pro Referenzmenge (z.B. 100 g oder 100 ml) mit ausgegeben. 
 
 Anwendungsbeispiel:
-* Sonntags lädt der Server (z.B. Raspberry Pi/Debian) per cron-Job die neuen Angebote herunter, und speichert sie als Notiz in einer Nextcloud-Instanz zum komfortablen Abruf.
+* Sonntags lädt der Server (z.B. Raspberry Pi/Debian) per cron-Job die neuen Angebote herunter, und speichert sie als Notiz in einer Nextcloud-Instanz zum komfortablen Abruf per Smartphone.
 
 ## Abhängigkeiten
 
@@ -15,7 +15,39 @@ Anwendungsbeispiel:
 Es kann auch ein anderer Browser als Firefox verwendet werden, hierzu auf [selenium-docs](https://www.selenium.dev/documentation/en/webdriver/driver_requirements/) nachschauen.
 Dann muss aber auch in der `main.py` der webdriver-Aufruf angepasst werden.
 
-## Wie komme ich an die URLs?
+## Verwendung
+
+1. Aktuelles Release [herunterladen](https://github.com/foo-git/rewe-angebots-scraper/releases) bzw. Master-Branch klonen
+1. `/angebots_scraper/rewe_scraper.py` ausführbar machen
+1. Die Datei `/angebots_scraper/example-urls.txt` mit eigenen URLs füllen (siehe nächster Abschnitt)
+1. `./rewe_scraper.py` ausführen
+1. Die Angebote werden dann im selben Verzeichnis in `Angebote Rewe.md` geschrieben
+
+Die Pfade zur URL-Datei oder zur Markdown-Datei können zudem einfach in `/angebots_scraper/rewe_scraper.py` angepasst werden.
+
+Ein Ausschnitt von `Angebote Rewe.md` sieht beispielsweise so aus:
+```
+# Kochen & Backen
+Gültig diese Woche bis Samstag, 30.05.2020
+
+**Barilla Pasta**
+- 0.79, 1 kg = 1.58
+- versch. Ausformungen, je 500-g-Pckg.
+
+**Knorr Grillsauce**
+- 0.65, 100 ml = 0.26
+- versch. Sorten, je 250-ml-Fl.
+
+**Erasco Eintopf**
+- 1.49, 1 kg = 1.86
+- versch. Sorten, je 800-g-Dose
+
+**Mondamin Milchreis im Becher**
+- 0.79, 100 g = 1.36
+- je 58-g-Becher
+```
+
+## Wie komme ich nun an die URLs?
 
 Auf der [Rewe-Seite](https://www.rewe.de/angebote/nationale-angebote/) muss man die PLZ seines bevorzugten Marktes eingeben, z.B. 63773:
 ![grafik](https://user-images.githubusercontent.com/53096886/82885025-17861380-9f34-11ea-9e00-3a0428db3f8e.png)
@@ -23,16 +55,8 @@ Auf der [Rewe-Seite](https://www.rewe.de/angebote/nationale-angebote/) muss man 
 Anschließend landet man auf der [Übersichtsseite](https://www.rewe.de/angebote/goldbach/562286/rewe-markt-erlengrund-14/):
 ![grafik](https://user-images.githubusercontent.com/53096886/82884898-edccec80-9f33-11ea-8947-26ea9b75eb96.png)
 
-Oben rechts auf die Schaltfläche "Kategorie wählen" klicken und alle URLs der Kategorien in "urls.txt" speichern, z.B.
-`https://www.rewe.de/angebote/kuehlung/c19/goldbach/562286/rewe-markt-erlengrund-14/` 
+Oben rechts auf die Schaltfläche "Kategorie wählen" klicken. Die URL für jede Kategorie kopieren und in die URL-Datei einfügen. 
 
-
-## Verwendung/Installation
-
-1. `main.py` herunterladen und ausführbar machen (`chmod +x main.py`)
-1. Die Datei `urls.txt` im selben Verzeichnis anlegen und pro Zeile eine URL eintragen, z.B. `https://www.rewe.de/angebote/kuehlung/c19/goldbach/562286/rewe-markt-erlengrund-14/`
-1. `python3 main.py` ausführen
-1. Die Angebote werden dann im selben Verzeichnis in `Angebote Rewe.md` geschrieben
 
 ## Hinweise zur Automatisierung (Debian)
 
