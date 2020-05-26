@@ -29,13 +29,64 @@ Oben rechts auf die Schaltfläche "Kategorie wählen" klicken und alle URLs der 
 
 ## Verwendung/Installation
 
-1. `main.py` herunterladen
+1. `main.py` herunterladen und ausführbar machen (`chmod +x main.py`)
 1. Die Datei `urls.txt` im selben Verzeichnis anlegen und pro Zeile eine URL eintragen, z.B. `https://www.rewe.de/angebote/kuehlung/c19/goldbach/562286/rewe-markt-erlengrund-14/`
 1. `python3 main.py` ausführen
 1. Die Angebote werden dann im selben Verzeichnis in `Angebote Rewe.md` geschrieben
 
-## Hinweise zur Automatisierung
+## Hinweise zur Automatisierung (Debian)
 
-Für Headless-Server muss ein Dummy-Monitor eingerichtet werden.
+Für Headless-Server muss zuerst noch ein Dummy-Monitor eingerichtet werden, damit Firefox erfolgreich gestartet werden kann.
 
-Für Debian-Systeme: `sudo apt install xserver-xorg-video-dummy`
+`sudo apt install xserver-xorg-video-dummy`
+
+Anschließend muss die X-Konfigurationsdatei `dummy-1920x1080.conf` erstellt werden:
+
+````
+Section "Monitor"
+  Identifier "Monitor0"
+  HorizSync 28.0-80.0
+  VertRefresh 48.0-75.0
+  # https://arachnoid.com/modelines/
+  # 1920x1080 @ 60.00 Hz (GTF) hsync: 67.08 kHz; pclk: 172.80 MHz
+  Modeline "1920x1080_60.00" 172.80 1920 2040 2248 2576 1080 1081 1084 1118 -HSync +Vsync
+EndSection
+
+Section "Device"
+  Identifier "Card0"
+  Driver "dummy"
+  VideoRam 256000
+EndSection
+
+Section "Screen"
+  DefaultDepth 24
+  Identifier "Screen0"
+  Device "Card0"
+  Monitor "Monitor0"
+  SubSection "Display"
+    Depth 24
+    Modes "1920x1080_60.00"
+  EndSubSection
+EndSection
+````
+
+
+Nun kann man den X-Server starten, welcher (vermutlich) dann auf DISPLAY=:0 läuft:
+
+`sudo X -config dummy-1920x1080.conf`
+
+
+Damit das Programm automatisch ausgeführt werden kann, muss noch ein Cron-Job angelegt werden.
+In der Datei könnte man gleich auch noch einen Kopierbefehl einfügen, wenn man die Datei woanders (z.B. Nextcloud) benötigt.
+
+Hierzu das Shellskript `/etc/cron.daily/rewe_scraper` erstellen und folgendes einfügen:
+````
+#!/bin/bash
+USER=foo
+PATH_TO_PROGRAM="main.py"
+LOGFILE=/tmp/rewe.log
+su -c "cd /tmp/; DISPLAY=:0 $PATH_TO_PROGRAM" "$USER" 2>&1 | tee -a "$LOGFILE"
+````
+
+Da von geckodriver ein Logfile angelegt wird, muss in ein schreibbares Verzeichnis (/tmp/) gewechselt werden.
+Zusätzlich dazu gibt es noch ein eigenes Logfile für den Rewe-Angebots-Scraper.
