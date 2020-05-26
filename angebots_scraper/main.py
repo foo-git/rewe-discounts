@@ -15,7 +15,7 @@ from bs4 import BeautifulSoup
 
 # user editable section
 #
-url_file = 'urls.txt'  # path to plain text file with one url per line
+url_file = 'example-urls.txt'  # path to plain text file with one url per line
 output_file = 'Angebote Rewe.md'  # path to output file
 #
 # ######################
@@ -38,7 +38,7 @@ def clean_string(input):
 
 def custom_exit(message, browser_running=False):
     print(message)
-    traceback.print_exc()
+    # traceback.print_exc()
     if browser_running:
         browser.quit()
     sys.exit(1)
@@ -115,22 +115,32 @@ class Product:
 
 
 # load urls from file
+urls = []
 try:
     with open(url_file, 'r') as file:
-        urls = file.readlines()
+        all_lines = file.readlines()
+    urls = [url for url in all_lines if url.startswith('http')]
 except FileNotFoundError:  # file not found or
-    custom_exit('FAIL: URL file "{}" not found. Please create it and write one url per line. '
-                'Only lines starting with "http" are processed.'.format(url_file))
+    custom_exit('FAIL: URL file "{}" not found. '
+                'Please check for typos or create it and write one url per line.'.format(url_file))
 
+if not urls:
+    custom_exit('FAIL: No URLs in file "{}" found. '
+                'Only lines starting with "http" are processed as URLs.'.format(url_file))
 
 # load web page and parse html
+print('INFO: Loading pages ...')
 page_soups = []
 browser = webdriver.Firefox()
+iteration = 0
+
 for url in urls:
-    if not url.startswith('http'):  # ignore comments and empty lines
-        continue
+    iteration += 1
     try:
+        print('INFO: Getting page {} of {} ...'.format(iteration, len(urls)))
         browser.get(url)
+    except common.exceptions.InvalidArgumentException:
+        custom_exit('FAIL: "{}" is not a valid URL. Check for typos and try again.'.format(url), browser_running=True)
     except common.exceptions.WebDriverException:
         custom_exit('FAIL: Could not retrieve web page "{}"'.format(url), browser_running=True)
 
@@ -139,14 +149,12 @@ for url in urls:
     except:
         custom_exit('FAIL: Something went wrong during soup eating of "{}".'.format(url), browser_running=True)
 
-    # sleep random time between 3s and 10s to prevent tripping DOS monitoring
+    # sleep random time between 3s and 7s to prevent tripping DOS monitoring
     value = random.random()
-    scaled_value = 3 + (value * (10-3))
+    scaled_value = 3 + (value * (7-3))
     time.sleep(scaled_value)
 browser.quit()
 
-if not page_soups:
-    custom_exit('FAIL: No web pages could be fetched, maybe the file "{}" is empty?'.format(url_file))
 
 all_discounts = []
 valid_date = None

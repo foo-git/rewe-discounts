@@ -1,0 +1,5 @@
+# This file contains all categories of discounts for a Rewe market
+
+https://www.rewe.de/angebote/kochen-und-backen/c6/goldbach/562286/rewe-markt-erlengrund-14/
+https://www.rewe.de/angebote/suessigkeiten/c7/goldbach/562286/rewe-markt-erlengrund-14/
+https://www.rewe.de/angebote/getraenke/c8/goldbach/562286/rewe-markt-erlengrund-14/
