@@ -17,11 +17,15 @@ Dann muss aber auch in der `main.py` der webdriver-Aufruf angepasst werden.
 
 ## Wie komme ich an die URLs?
 
-Auf der [Rewe-Seite](https://www.rewe.de/angebote/nationale-angebote/) muss man die PLZ seines bevorzugten Marktes eingeben, z.B. 63773.
-Anschließend landet man auf der [Übersichtsseite](https://www.rewe.de/angebote/goldbach/562286/rewe-markt-erlengrund-14/).
-Oben rechts auf die Schaltfläche "Kategorie wählen" klicken und die URLs der Kategorien in "urls.txt" speichern. 
+Auf der [Rewe-Seite](https://www.rewe.de/angebote/nationale-angebote/) muss man die PLZ seines bevorzugten Marktes eingeben, z.B. 63773:
+![grafik](https://user-images.githubusercontent.com/53096886/82885025-17861380-9f34-11ea-9e00-3a0428db3f8e.png)
 
-INSERT PIC
+Anschließend landet man auf der [Übersichtsseite](https://www.rewe.de/angebote/goldbach/562286/rewe-markt-erlengrund-14/):
+![grafik](https://user-images.githubusercontent.com/53096886/82884898-edccec80-9f33-11ea-8947-26ea9b75eb96.png)
+
+Oben rechts auf die Schaltfläche "Kategorie wählen" klicken und alle URLs der Kategorien in "urls.txt" speichern, z.B.
+`https://www.rewe.de/angebote/kuehlung/c19/goldbach/562286/rewe-markt-erlengrund-14/` 
+
 
 ## Verwendung/Installation
 
