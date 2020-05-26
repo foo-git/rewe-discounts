@@ -1,86 +1,188 @@
 #!/usr/bin/python3
+"""
+Scrapes the Rewe web pages for current discount offers and exports them as a beautiful markdown formatted list.
+"""
+
+import sys
+import random
+import time
+import traceback
+from datetime import datetime
 
 from selenium import webdriver, common
-import time
 from bs4 import BeautifulSoup
-import random
-from datetime import datetime
-import sys
-import traceback
 
-url_file = 'urls.txt'
-output_file = 'Angebote Rewe.md'
+
+# user editable section
+#
+url_file = 'urls.txt'  # path to plain text file with one url per line
+output_file = 'Angebote Rewe.md'  # path to output file
+#
+# ######################
+
+
+def clean_string(input):
+    """
+    Replaces all newline characters in an input string with blank spaces.
+
+    Args:
+        input (str): Input string.
+
+    Returns:
+        output (str): Cleaned output string.
+
+    """
+    output = input.replace('\n', ' ').replace('\u2028', ' ').replace('\u000A', ' ')
+    return output
+
+
+def custom_exit(message, browser_running=False):
+    print(message)
+    traceback.print_exc()
+    if browser_running:
+        browser.quit()
+    sys.exit(1)
 
 
 class Product:
+    """
+    Data-storage class for products.
+    """
     def __init__(self):
-        self.name = None
-        self.price = None
-        self.discount = None
-        self.discount_valid = None
-        self.normalized_price = None
-        self.description = None
-        self.category = None
+        self._name = None
+        self._price = None
+        self._discount = None
+        self._discount_valid = None
+        self._normalized_price = None
+        self._description = None
+        self._category = None
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        self._name = clean_string(name)
+
+    @property
+    def price(self):
+        return self._price
+
+    @price.setter
+    def price(self, price):
+        self._price = clean_string(price)
+
+    @property
+    def discount(self):
+        return self._discount
+
+    @discount.setter
+    def discount(self, discount):
+        self._discount = clean_string(discount)
+
+    @property
+    def discount_valid(self):
+        return self._discount_valid
+
+    @discount_valid.setter
+    def discount_valid(self, discount_valid):
+        self._discount_valid = clean_string(discount_valid)
+
+    @property
+    def normalized_price(self):
+        return self._normalized_price
+
+    @normalized_price.setter
+    def normalized_price(self, normalized_price):
+        self._normalized_price = clean_string(normalized_price).strip('(').strip(')')
+
+    @property
+    def description(self):
+        return self._description
+
+    @description.setter
+    def description(self, description):
+        self._description = clean_string(description)
+
+    @property
+    def category(self):
+        return self._category
+
+    @category.setter
+    def category(self, category):
+        self._category = clean_string(category)
 
 
-with open(url_file, 'r') as file:
-    urls = file.readlines()
+# load urls from file
+try:
+    with open(url_file, 'r') as file:
+        urls = file.readlines()
+except FileNotFoundError:  # file not found or
+    custom_exit('FAIL: URL file "{}" not found. Please create it and write one url per line. '
+                'Only lines starting with "http" are processed.'.format(url_file))
 
+
+# load web page and parse html
 page_soups = []
-
 browser = webdriver.Firefox()
 for url in urls:
+    if not url.startswith('http'):  # ignore comments and empty lines
+        continue
     try:
         browser.get(url)
     except common.exceptions.WebDriverException:
-        print("FAIL: Could not retrieve web page '{}'".format(url))
-        traceback.print_exc()
-        browser.quit()
-        sys.exit(1)
-    value = random.random()
-    scaled_value = 3 + (value * (10-3))  # sleep random time between 3s and 10s
-    time.sleep(scaled_value)
+        custom_exit('FAIL: Could not retrieve web page "{}"'.format(url), browser_running=True)
+
     try:
         page_soups.append(BeautifulSoup(browser.page_source, features="lxml"))
     except:
-        print('FAIL: Something went wrong during soup eating of {}.'.format(url))
-        traceback.print_exc()
-        browser.quit()
-        sys.exit(1)
+        custom_exit('FAIL: Something went wrong during soup eating of "{}".'.format(url), browser_running=True)
 
-
+    # sleep random time between 3s and 10s to prevent tripping DOS monitoring
+    value = random.random()
+    scaled_value = 3 + (value * (10-3))
+    time.sleep(scaled_value)
 browser.quit()
+
+if not page_soups:
+    custom_exit('FAIL: No web pages could be fetched, maybe the file "{}" is empty?'.format(url_file))
 
 all_discounts = []
 valid_date = None
+separator = ' '  # description entries separator
 
-separator = ' '
+# substrings to identify normalized prices in description
+matches = ['g =', '100 g', 'l =', '100 ml', '100-g', '100-ml', '1-kg', 'je St.', '1 kg', '1-l', '-St.']
 
+# stores product information from web page in a list grouped by categories
 for soup in page_soups:
+    category_discounts = []
     try:
         category = soup.find("h1").contents[0]
         valid_date = soup.find("span", class_="copy").contents[0]
         products = soup.find_all("div", class_="card-body")
-        category_discounts = []
         for item in products:
             NewProduct = Product()
             NewProduct.category = category
             try:
-                NewProduct.discount_valid = item.find("p", class_="ma-offer-validfrom-to").contents[0].replace('\n', ' ')
-            except IndexError:
+                NewProduct.discount_valid = item.find("p", class_="ma-offer-validfrom-to").contents[0]
+            except IndexError:  # discount has no specific valid-from-to date
                 NewProduct.discount_valid = ""
-            NewProduct.name = item.find("p", class_="headline").contents[0].contents[0].replace('\n', ' ')
-            NewProduct.price = item.find("div", class_="price").contents[0].contents[0].replace('\n', ' ')
-            NewProduct.discount = item.find("div", class_="discount").contents[0].contents[0].replace('\n', ' ')
+            NewProduct.name = item.find("p", class_="headline").contents[0].contents[0]
+            NewProduct.price = item.find("div", class_="price").contents[0].contents[0]
+            NewProduct.discount = item.find("div", class_="discount").contents[0].contents[0]
+
+            # isolate normalized price and store the rest of information in description
             description = []
             for entry in item.find("div", class_="text-description").contents:
                 try:
-                    text = entry.contents[0].strip('\n')
-                    if 'g =' in text or '100 g' in text or 'l =' in text or '100 ml' in text or '100-g' in text or '100-ml' in text or '1-kg' in text or 'je St.' in text or '1 kg' in text or '1-l' in text or '-St.' in text:
-                        NewProduct.normalized_price = text.strip('(').strip(')')
+                    text = clean_string(entry.contents[0])
+                    if any(x in text for x in matches):
+                        NewProduct.normalized_price = text
                     else:
                         description.append(text)
-                except IndexError:
+                except IndexError:  # no description available
                     pass
             if not NewProduct.normalized_price:
                 NewProduct.normalized_price = ''
@@ -89,10 +191,11 @@ for soup in page_soups:
             category_discounts.append(NewProduct)
         all_discounts.append(category_discounts)
     except:
-        print('FAIL: Unknown error during HTML feature extraction. Maybe the web page {} has changed its source code?'.format(url))
-        traceback.print_exc()
-        sys.exit(1)
+        custom_exit('FAIL: Unknown error during HTML feature extraction. '
+                    'Maybe the web page "{}" has changed its source code?'.format(url))
 
+
+# write product information grouped by categories to file
 try:
     with open(output_file, 'w') as file:
         file.truncate(0)
@@ -100,17 +203,15 @@ try:
             header = "# {}\n{}\n\n".format(category[0].category, valid_date)
             file.write(header)
             for product in category:
-                file.write("**{}**\n".format(product.name.strip('\n').replace('\u2028', ' ').replace('\u000A', ' ')))
-                file.write("- {}, {}\n".format(product.price.strip('\n').replace('\u2028', ' ').replace('\u000A', ' '), product.normalized_price.strip('\n').replace('\u2028', ' ').replace('\u000A', ' ')))
+                file.write("**{}**\n".format(product.name))
+                file.write("- {}, {}\n".format(product.price, product.normalized_price))
                 if product.description:
-                    file.write("- {}\n".format(product.description.strip('\n').replace('\u2028', ' ').replace('\u000A', ' ')))
+                    file.write("- {}\n".format(product.description))
                 if product.discount_valid:
-                    file.write("- {}\n".format(product.discount_valid.strip('\n').replace('\u2028', ' ').replace('\u000A', ' ')))
+                    file.write("- {}\n".format(product.discount_valid))
                 file.write('\n')
             file.write('\n')
         file.write("Update: {}".format(datetime.now()))
-        print("OK: Wrote discounts to file.")
+        print('OK: Wrote {} discounts to file "{}".'.format(sum([len(x) for x in all_discounts]), output_file))
 except:
-    print('FAIL: Something went wrong while writing to file {}.'.format(output_file))
-    traceback.print_exc()
-    sys.exit(1)
+    custom_exit('FAIL: Something went wrong while writing to file "{}".'.format(output_file))
