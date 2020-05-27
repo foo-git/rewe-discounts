@@ -49,5 +49,3 @@ Es lassen sich bestimmte Produkte auch hervorheben und an erster Stelle der Date
 Hierzu wird noch eine Textdatei angelegt, und pro Zeile ein Suchbegriff wie "Nudeln" oder "Joghurt" eingegeben:
 
 `rewe_discounts.py --market-id 562286 --output-file "Angebote Rewe.md" --highlights=highlights.txt`
-
-Die Pfade zur Highlights-Datei oder zur Markdown-Datei können zudem einfach in `/rewe_discounts/rewe_discounts.py` angepasst werden.
