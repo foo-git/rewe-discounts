@@ -1,4 +1,4 @@
-# Rewe Angebots-Scraper
+# Rewe Discounts
 
 Dieses Programm sucht mittels der Rewe-API für einen bestimmten Rewe-Markt die aktuellen
 Angebote und schreibt eine Markdown-formatierte Übersichtsliste heraus.
@@ -17,7 +17,7 @@ zum komfortablen Abruf per Smartphone.
 
 ## Verwendung
 
-* Aktuelles Release [herunterladen](https://github.com/foo-git/rewe-angebots-scraper/releases) bzw. Master-Branch klonen.
+* Aktuelles Release [herunterladen](https://github.com/foo-git/rewe-discounts/releases) bzw. Master-Branch klonen.
 * `python3 ./rewe_discounts/rewe_discounts.py` ausführen und Hilfetext durchlesen.
     * Mit `rewe_discounts.py --list-markets PLZ` lässt sich für eine beliebige Postleitzahl (PLZ) eine Marktliste inklusive der Market ID ausgeben lassen.
     * Wähle einen Markt und kopiere die ID, z.B. "562286".
