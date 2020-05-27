@@ -12,6 +12,7 @@ class Product:
     """
     Data-storage class for products.
     """
+
     def __init__(self):
         self._name = ''
         self._price = ''
@@ -111,7 +112,19 @@ def custom_exit(message):
     sys.exit(1)
 
 
-parser = argparse.ArgumentParser(description='Fetches current Rewe discount offers for a specific market.')
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+    description='Fetches current Rewe discount offers for a specific market.',
+    epilog=
+    'Example usages:\n'
+    ' - Prints the market IDs of all Rewe markets in/near the zip code/PLZ "63773":\n'
+    '      rewe_discounts.py --list-markets 63773\n'
+    ' - Exports current discounts of the market with the ID "562286":\n'
+    '      rewe_discounts.py --market-id 562286 --output-file "Angebote Rewe.md"\n'
+    ' - Exports current discounts of the market with the ID "562286" and highlights defined products:\n'
+    '      rewe_discounts.py --market-id 562286 --output-file "Angebote Rewe.md" --highlights=highlights.txt'
+)
+
 parser.add_argument('--market-id', type=str, help='Market ID, needs to be obtained by executing --list-markets.')
 parser.add_argument('--output-file', type=str, help='Output file path.')
 parser.add_argument('--highlights', type=str, help='Products mentioned in this file, e.g. "Joghurt", '
@@ -153,7 +166,7 @@ if args.list_markets:  # mode "print market IDs"
                                             market['address']['city']))
     print('\nPlease choose the right market and its ID from above.\n\n'
           'Example program call to fetch all discounts from a market:\n'
-          '  rewe_discounts_api.py --market-id ID --output-file "Angebote Rewe.md"')
+          '  rewe_discounts.py --market-id ID --output-file "Angebote Rewe.md"')
 
     sys.exit(0)
 
@@ -198,7 +211,7 @@ else:  # mode "print offers of selected market"
                         'Please check for typos or create it and write one url per line.'.format(highlight_file))
         if not product_highlights:
             print('WARNING: No product highlights in file "{}" found. '
-                  'Ignoring highlight request and continuing.'.format(highlight_file))
+                  'Ignoring user request to highlight and continuing anyway.'.format(highlight_file))
 
     # Stores product data in a dict with categories as keys for a sorted printing experience.
     # Sometimes the data from Rewe is mixed/missing, so that's why we need all those try/excepts.
@@ -253,11 +266,12 @@ else:  # mode "print offers of selected market"
             file.write('\n')
         file.write("Update: {}".format(datetime.datetime.now()))
 
-        if product_highlights:
-            print('OK: Wrote {} discounts to file "{}" and highlighted {}.'.format(
-                sum([len(categorized_products[x]) for x in categorized_products])-len(categorized_products['!']),
-                output_file,
-                sum([len(categorized_products['!'])])))
-        else:
-            print('OK: Wrote {} discounts to file "{}".'.format(
-                sum([len(categorized_products[x]) for x in categorized_products]), output_file))
+    if product_highlights:
+        print('OK: Wrote {} discounts to file "{}" and highlighted {}.'.format(
+            sum([len(categorized_products[x]) for x in categorized_products]) - len(categorized_products['!']),
+            output_file,
+            sum([len(categorized_products['!'])])))
+    else:
+        print('OK: Wrote {} discounts to file "{}".'.format(
+            sum([len(categorized_products[x]) for x in categorized_products]), output_file))
+    sys.exit(0)
