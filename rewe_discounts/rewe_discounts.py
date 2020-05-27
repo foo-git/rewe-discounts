@@ -205,7 +205,7 @@ else:  # mode "print offers of selected market"
         try:
             with open(highlight_file, 'r') as file:
                 all_lines = file.readlines()
-            product_highlights = [clean_string(item) for item in all_lines if not item.startswith('#')]
+            product_highlights = [item.strip('\n') for item in all_lines if not item.startswith('#') and item.strip('\n')]
         except FileNotFoundError:  # file not found or
             custom_exit('FAIL: Highlights file "{}" not found. '
                         'Please check for typos or create it and write one url per line.'.format(highlight_file))
