@@ -243,7 +243,7 @@ else:  # mode "print offers of selected market"
         except KeyError:
             categorized_products['?'].append(NewProduct)
         # ... but highlighted products are the only ones in two categories
-        if any(x in NewProduct.name for x in product_highlights):
+        if any(x.lower() in NewProduct.name.lower() for x in product_highlights):
             categorized_products['!'].append(NewProduct)
 
     # Writes product list grouped by categories to file, and cleans file first
