@@ -176,9 +176,10 @@ else:  # mode "print offers of selected market"
         sys.exit(0)
     try:
         assert int(market_id)
-        assert len(market_id) == 6
+        assert len(market_id) >= 6
+        assert len(market_id) <= 7
     except (ValueError, AssertionError):
-        custom_exit('FAIL: Unrecognized input "{}". Please provide a 6 digit market ID.'.format(args.market_id))
+        custom_exit('FAIL: Unrecognized input "{}". Please provide a 6 or 7 digit market ID.'.format(args.market_id))
 
     # Craft query and load JSON stuff.
     url = 'https://mobile-api.rewe.de/products/offer-search?categoryId=&marketId=' + market_id
