@@ -3,6 +3,7 @@
 import sys
 import argparse
 import datetime
+import time
 import traceback
 
 import cloudscraper
@@ -64,7 +65,7 @@ class Product:
 
     @base_price.setter
     def base_price(self, base_price):
-        self._base_price = clean_string(base_price).strip('(').strip(')')
+        self._base_price = clean_string(base_price)
 
     @property
     def description(self):
@@ -80,7 +81,7 @@ class Product:
 
     @category.setter
     def category(self, category_id):
-        self._category = clean_string(categories_id_mapping[category_id[0]])
+        self._category = clean_string(categories_id_mapping[category_id])
 
     @property
     def currency(self):
@@ -182,7 +183,7 @@ else:  # mode "print offers of selected market"
         custom_exit('FAIL: Unrecognized input "{}". Please provide a 6 or 7 digit market ID.'.format(args.market_id))
 
     # Craft query and load JSON stuff.
-    url = 'https://mobile-api.rewe.de/products/offer-search?categoryId=&marketId=' + market_id
+    url = 'https://mobile-api.rewe.de/api/v3/all-offers?marketCode=' + market_id
     try:
         data = scraper.get(url).json()
     except:
@@ -191,14 +192,19 @@ else:  # mode "print offers of selected market"
 
     # Reformat categories for easier access. ! are highlighted products, and ? are uncategorized ones.
     # Order of definition here determines printing order later on.
-    categories = data['_meta']['categories']
+    categories = data['categories']
     categories_id_mapping = {'!': 'Vorgemerkte Produkte'}
     categorized_products = {'!': []}
     for n in range(0, len(categories)):
-        categories_id_mapping.update({categories[n]['id']: categories[n]['name']})
-        categorized_products.update({categories[n]['id']: []})
+        if 'PAYBACK' in categories[n]['title']:  # ignore payback offers
+            continue
+        categories_id_mapping.update({n: categories[n]['title']})
+        categorized_products.update({n: []})
     categories_id_mapping.update({'?': 'Unbekannte Kategorie'})
     categorized_products.update({'?': []})
+
+    # Get maximum valid date of offers
+    offers_valid_date = time.strftime('%Y-%m-%d', time.localtime(data['untilDate'] / 1000))
 
     # Check and process highlights file
     product_highlights = []
@@ -216,51 +222,47 @@ else:  # mode "print offers of selected market"
 
     # Stores product data in a dict with categories as keys for a sorted printing experience.
     # Sometimes the data from Rewe is mixed/missing, so that's why we need all those try/excepts.
-    for item in data['items']:
-        NewProduct = Product()
-        NewProduct.name = item['name']
-        NewProduct.price = item['price']
-        NewProduct.currency = item['currency']
-        try:
-            NewProduct.category = item['categoryIDs']
-        except KeyError:  # if category not defined in _meta, assign to unknown category
-            NewProduct.category = '?'
-        try:
-            NewProduct.base_price = item['basePrice']
-        except KeyError:  # sometimes the basePrice is written in quantityAndUnit
-            NewProduct.base_price = item['quantityAndUnit']
-        try:
-            NewProduct.discount = item['discount']
-        except KeyError:  # sometimes no discount is given per product
-            NewProduct.discount = ''
-        try:
-            NewProduct.description = item['quantityAndUnit'] + ' ' + item['additionalInformation']
-        except KeyError:  # sometimes additionalInformation is missing
-            NewProduct.description = item['quantityAndUnit']
+    n = 0
+    for category in data['categories']:
+        if 'PAYBACK' in category['title']:  # ignore payback offers
+            n += 1
+            continue
+        for item in category['offers']:
+            NewProduct = Product()
+            try:
+                NewProduct.name = item['title']
+                NewProduct.price = item['priceData']['price']
+                NewProduct.base_price = item['subtitle']
+            except KeyError:  # sometimes an item is blank or does not contain price information, skip it
+                continue
+            try:
+                NewProduct.category = n
+            except KeyError:  # if category not defined in _meta, assign to unknown category
+                NewProduct.category = '?'
 
-        # Move product into the respective category list ...
-        try:
-            categorized_products[item['categoryIDs'][0]].append(NewProduct)
-        except KeyError:
-            categorized_products['?'].append(NewProduct)
-        # ... but highlighted products are the only ones in two categories
-        if any(x in NewProduct.name for x in product_highlights):
-            categorized_products['!'].append(NewProduct)
+            # Move product into the respective category list ...
+            try:
+                categorized_products[n].append(NewProduct)
+            except KeyError:
+                categorized_products['?'].append(NewProduct)
+            # ... but highlighted products are the only ones in two categories
+            if any(x in NewProduct.name for x in product_highlights):
+                categorized_products['!'].append(NewProduct)
+        n += 1
 
     # Writes product list grouped by categories to file, and cleans file first
     with open(output_file, 'w') as file:
         file.truncate(0)
-        offers_valid_date = data['_meta']['offerDuration']['label']
         for category_id in categorized_products:
             if category_id == '!':
-                header = '# {}\n{}\n\n'.format(categories_id_mapping[category_id], offers_valid_date)
+                header = '# {}\nAlle Angebote gültig bis {}.\n\n'.format(categories_id_mapping[category_id], offers_valid_date)
             else:
                 header = '# {}\n\n'.format(categories_id_mapping[category_id])
             file.write(header)
             for product in categorized_products[category_id]:
                 file.write('**{}**\n'.format(product.name))
-                file.write('- {}, {}\n'.format(product.price, product.base_price))
-                file.write("- {}\n".format(product.description))
+                file.write('- {}\n'.format(product.price))
+                file.write("- {}\n".format(product.base_price))
                 if product.discount_valid:
                     file.write("- {}\n".format(product.discount_valid))
                 file.write('\n')
