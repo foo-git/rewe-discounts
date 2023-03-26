@@ -149,22 +149,22 @@ if args.list_markets:  # mode "print market IDs"
     zip_code = args.list_markets
 
     # Craft query and load JSON stuff.
-    url = 'https://shop.rewe.de/mc/api/markets-stationary/' + zip_code
+    url = 'https://www.rewe.de/api/marketsearch?searchTerm=' + zip_code
     try:
         data = scraper.get(url).json()
     except:  # might be refined later on
         custom_exit('FAIL: Unknown error while fetching discounts from {}. '
                     'Maybe a typo or the server rejected the request.'.format(url))
-    markets = data['stationaryMarkets']
+    markets = data
 
     if not markets:
         custom_exit('FAIL: No markets found near provided zip code "{}".'.format(zip_code))
 
     print('  ID     Location')
     for market in markets:
-        print('{}: {}, {} {}, {} {}'.format(market['id'], market['name'], market['address']['street'],
-                                            market['address']['houseNumber'], market['address']['postalCode'],
-                                            market['address']['city']))
+        print('{}: {}, {}, {} {}'.format(market['wwIdent'], market['companyName'], market['contactStreet'],
+                                            market['contactZipCode'],
+                                            market['contactCity']))
     print('\nPlease choose the right market and its ID from above.\n\n'
           'Example program call to fetch all discounts from a market:\n'
           '  rewe_discounts.py --market-id ID --output-file "Angebote Rewe.md"')
