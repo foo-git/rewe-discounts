@@ -235,6 +235,7 @@ else:  # mode "print offers of selected market"
 
     # Stores product data in a dict with categories as keys for a sorted printing experience.
     # Sometimes the data from Rewe is mixed/missing, so that's why we need all those try/excepts.
+
     n = 0
     for category in data['categories']:
         if 'PAYBACK' in category['title']:  # ignore payback offers
