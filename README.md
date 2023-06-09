@@ -11,11 +11,14 @@ Anwendungsbeispiel:
 neuen Angebote herunter, und speichert sie als Notiz in einer Nextcloud-Instanz
 zum komfortablen Abruf per Smartphone.
 
-## Abhängigkeiten
+## Abhängigkeiten (Dependencies)
+Die einzige externe Abhängigkeit ist zur Abfrage der Rewe API nötig, und damit Cloudflare die Anfrage durchlässt:
+- `$ pip install cloudscraper`
 
-- `$ pip install cloudscraper` 
+Falls das Programm nicht funktioniert und 403-Fehler wirft (siehe [Issue in Github](https://github.com/foo-git/rewe-discounts/issues/14)), versuche die Version festzulegen:
+- `$ pip install --force-reinstall -v "cloudscraper==1.2.69"`
 
-## Verwendung
+## Verwendung (Usage)
 
 * Aktuelles Release [herunterladen](https://github.com/foo-git/rewe-discounts/releases) bzw. Master-Branch klonen.
 * `python3 ./rewe_discounts/rewe_discounts.py` ausführen und Hilfetext durchlesen.
