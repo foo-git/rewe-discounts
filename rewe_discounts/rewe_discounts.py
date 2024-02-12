@@ -16,6 +16,7 @@ class Product:
     """
 
     def __init__(self):
+        self._id = ''
         self._name = ''
         self._price = ''
         self._discount = ''
@@ -24,6 +25,7 @@ class Product:
         self._description = ''
         self._category = ''
         self._currency = ''
+        self.currency = '€'
 
     @property
     def name(self):
@@ -82,7 +84,10 @@ class Product:
 
     @category.setter
     def category(self, category_id):
-        self._category = clean_string(categories_id_mapping[category_id])
+        if type(category_id) is int:
+            self._category = clean_string(categories_id_mapping[category_id])
+        elif type(category_id) is str:
+            self._category = clean_string(category_id)
 
     @property
     def currency(self):
@@ -91,6 +96,14 @@ class Product:
     @currency.setter
     def currency(self, currency):
         self._currency = clean_string(currency)
+
+    @property
+    def id(self):
+        return self._id
+
+    @id.setter
+    def id(self, id):
+        self._id = id
 
 
 def clean_string(input):
@@ -104,7 +117,8 @@ def clean_string(input):
         output (str): Cleaned output string.
 
     """
-    output = input.replace('\n', ' ').replace('\u2028', ' ').replace('\u000A', ' ').rstrip().lstrip()
+    output = (input.replace('\n', ' ').replace('\u2028', ' ')
+              .replace('\u000A', ' ').rstrip().lstrip())
     return output
 
 
@@ -112,6 +126,119 @@ def custom_exit(message):
     traceback.print_exc()
     print(message)
     sys.exit(1)
+
+def load_product_highlights():
+    # Check and process highlights file
+    product_highlights = []
+    if highlight_file:
+        try:
+            with open(highlight_file, 'r') as file:
+                all_lines = file.readlines()
+            product_highlights = [item.strip('\n') for item in all_lines if
+                                  not item.startswith('#') and item.strip('\n')]
+        except FileNotFoundError:  # file not found or
+            custom_exit('FAIL: Highlights file "{}" not found. '
+                        'Please check for typos or create it and write one url per line.'.format(highlight_file))
+        if not product_highlights:
+            print('WARNING: No product highlights in file "{}" found. '
+                  'Ignoring user request to highlight and continuing anyway.'.format(highlight_file))
+    return product_highlights
+
+
+# If the less elegant approach is used, we get different API output and need to process each product individually
+def get_product_details(Product):
+    url = 'https://www.rewe.de/api/offer-details/{}?wwIdent={}'.format(Product.id, market_id)
+    try:
+        item = scraper.get(url).json()
+        time.sleep(0.02)  # without any sleep, we run into 429 errors, 0.02 s works for now
+    except JSONDecodeError:  # Maye a timeout/load issue, retrying silently
+        print('INFO: Error while retrieving, possible timeout issue, continuing in 60 seconds...')
+        time.sleep(60)
+        item = scraper.get(url).json()
+    Product.name = item['product']['description']
+    Product.price = str(int(item['pricing']['priceInCent']) / 100)
+    Product.discount_valid = item['validUntil']
+    try:
+        Product.base_price = item['pricing']['basePrice']
+    except:
+        Product.base_price = item['amount']
+
+
+# When the single query approach fails...
+def less_elegant_query(market_id):
+    url = 'https://www.rewe.de/api/all-stationary-offers/' + market_id
+    try:
+        data = scraper.get(url).json()
+    except (JSONDecodeError, ConnectionError, ConnectTimeout):
+        custom_exit('FAIL: Unknown error while fetching discounts from {}, '
+                    'maybe a typo or the server rejected the request.'.format(url))
+
+    try:
+        for filter in data['filters']:
+            if filter['id'] == 'no-price-filter':
+                data_filtered = filter['categories']
+    except:
+        custom_exit('FAIL: In the returned query, no data was found. The API output seems to have changed and the '
+                    'code needs to be adjusted.')
+
+    # Check and process highlights file
+    product_highlights = load_product_highlights()
+
+    offers_valid_date = None
+    categorized_products = {'Vorgemerkte Produkte': []}
+
+    # Stores product data in a dict with categories as keys for a sorted printing experience.
+    # Sometimes the data from Rewe is mixed/missing, so that's why we need all those try/excepts.
+    for category in data_filtered:
+        if 'payback' in category['id']:  # ignore payback offers
+            continue
+        categorized_products.update({category['id']: []})
+        for item in category['offers']:
+            NewProduct = Product()
+            NewProduct.id = item['id']
+            NewProduct.category = category['id']
+            get_product_details(NewProduct)
+            if not offers_valid_date:  # randomly determine the discount valid date by the first product
+                offers_valid_date = NewProduct.discount_valid
+            # Move product into the respective category list ...
+            try:
+                categorized_products[category['id']].append(NewProduct)
+            except KeyError:
+                categorized_products['Unbekannt'].append(NewProduct)
+            # ... but highlighted products are the only ones in two categories
+            if any(x in NewProduct.name for x in product_highlights):
+                categorized_products['Vorgemerkte Produkte'].append(NewProduct)
+    categorized_products.update({'Unbekannt': []})
+
+    # Writes product list grouped by categories to file, and cleans file first
+    with open(output_file, 'w') as file:
+        file.truncate(0)
+        for category_name in categorized_products:
+            if category_name == 'Vorgemerkte Produkte':
+                header = '# Vorgemerkte Produkte\nAlle Angebote gültig bis {}.\n\n'.format(offers_valid_date)
+            else:
+                header = '# {}\n\n'.format(category_name)
+            file.write(header)
+            for product in categorized_products[category_name]:
+                file.write('**{}**\n'.format(product.name))
+                file.write('- {} {}\n'.format(product.price, product.currency))
+                file.write("- {}\n".format(product.base_price))
+                if product.discount_valid != offers_valid_date:
+                    file.write("- {}\n".format(product.discount_valid))
+                file.write('\n')
+            file.write('\n')
+        file.write("Update: {}".format(datetime.datetime.now()))
+
+    if product_highlights:
+        print('OK: Wrote {} discounts to file "{}" and highlighted {}.'.format(
+            sum([len(categorized_products[x]) for x in categorized_products]) -
+            len(categorized_products['Vorgemerkte Produkte']),
+            output_file,
+            sum([len(categorized_products['Vorgemerkte Produkte'])])))
+    else:
+        print('OK: Wrote {} discounts to file "{}".'.format(
+            sum([len(categorized_products[x]) for x in categorized_products]), output_file))
+    sys.exit(0)
 
 
 parser = argparse.ArgumentParser(
@@ -197,8 +324,10 @@ else:  # mode "print offers of selected market"
                         'maybe a typo or the server rejected the request:'
                         '{}'.format(url, data['error']))
     except (JSONDecodeError, ConnectionError, ConnectTimeout):
-        custom_exit('FAIL: Unknown error while fetching discounts from {}, '
-                    'maybe a typo or the server rejected the request.'.format(url))
+        print('INFO: Unknown error while fetching discounts from {}, '
+              'using less-elegant approach now.'.format(url))
+        data = less_elegant_query(market_id)
+
     except (KeyError, TypeError):  # data got retrieved successfully
         pass
 
@@ -219,19 +348,7 @@ else:  # mode "print offers of selected market"
     offers_valid_date = time.strftime('%Y-%m-%d', time.localtime(data['untilDate'] / 1000))
 
     # Check and process highlights file
-    product_highlights = []
-    if highlight_file:
-        try:
-            with open(highlight_file, 'r') as file:
-                all_lines = file.readlines()
-            product_highlights = [item.strip('\n') for item in all_lines if
-                                  not item.startswith('#') and item.strip('\n')]
-        except FileNotFoundError:  # file not found or
-            custom_exit('FAIL: Highlights file "{}" not found. '
-                        'Please check for typos or create it and write one url per line.'.format(highlight_file))
-        if not product_highlights:
-            print('WARNING: No product highlights in file "{}" found. '
-                  'Ignoring user request to highlight and continuing anyway.'.format(highlight_file))
+    product_highlights = load_product_highlights()
 
     # Stores product data in a dict with categories as keys for a sorted printing experience.
     # Sometimes the data from Rewe is mixed/missing, so that's why we need all those try/excepts.
