@@ -15,9 +15,6 @@ zum komfortablen Abruf per Smartphone.
 Die einzige externe Abhängigkeit ist zur Abfrage der Rewe API nötig, und damit Cloudflare die Anfrage durchlässt:
 - `$ pip install cloudscraper`
 
-Falls das Programm nicht funktioniert und 403-Fehler wirft (siehe [Issue in Github](https://github.com/foo-git/rewe-discounts/issues/14)), versuche die Version festzulegen:
-- `$ pip install --force-reinstall -v "cloudscraper==1.2.69"`
-
 ## Verwendung (Usage)
 
 * Aktuelles Release [herunterladen](https://github.com/foo-git/rewe-discounts/releases) bzw. Master-Branch klonen.
