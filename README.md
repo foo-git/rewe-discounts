@@ -1,3 +1,5 @@
+# Rewe Discounts
+
 ---
 **Warning: The script is no longer working due to breaking Rewe API changes**
 For details, see [#19](https://github.com/foo-git/rewe-discounts/issues/19) (apparently you need some certificate and private key from the Rewe app).
@@ -8,7 +10,7 @@ Right now, I'm not planning on rewriting this program. It was nice while it last
 
 ---
 
-# Rewe Discounts
+# Beschreibung
 
 Dieses Programm sucht mittels der Rewe-API für einen bestimmten Rewe-Markt die aktuellen
 Angebote und schreibt eine Markdown-formatierte Übersichtsliste heraus.
