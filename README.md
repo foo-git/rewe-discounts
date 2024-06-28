@@ -4,7 +4,7 @@
 **Warning: The script is no longer working due to breaking Rewe API changes**
 For details, see [#19](https://github.com/foo-git/rewe-discounts/issues/19) (apparently you need some certificate and private key from the Rewe app).
 
-The current working fork is from [torbenpfohl](https://github.com/torbenpfohl/rewe-discounts).
+The current working Python fork is from [torbenpfohl](https://github.com/torbenpfohl/rewe-discounts), but check out also the Go version from [ByteSizedMarius](https://github.com/ByteSizedMarius/rewerse-engineering).
 
 Right now, I'm not planning on rewriting this program. It was nice while it lasted. I'll keep this repository open to provide issue tracking/discussions, but I guess I'm gonna pass the torch to another contributor.
 
